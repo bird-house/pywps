@@ -499,6 +499,20 @@ class ComplexInput(Input):
         else:
             return self.value
 
+
+    def generateOutputName(self, url):
+        from os import curdir
+        from os.path import basename, exists
+        from urlparse import urlparse
+        #outputName = tempfile.mktemp(prefix="pywpsInput",dir=curdir)
+        # try to keep original name
+        parsed_url = urlparse(url)
+        outputName = basename(parsed_url.path)
+        if len(outputName) < 2 or exists(outputName):
+            outputName = tempfile.mktemp(prefix=outputName, dir=curdir)
+        return outputName
+
+
     def downloadData2(self, url):
         """Download data from given file url.
 
@@ -512,7 +526,9 @@ class ComplexInput(Input):
     
         # try to make symbolic link to file otherwise download it
         from os import curdir, symlink
-        outputName = tempfile.mktemp(prefix="pywpsInput",dir=curdir)
+        # try to keep original name
+        outputName = self.generateOutputName(url)
+        #outputName = tempfile.mktemp(prefix="pywpsInput",dir=curdir)
         try:
             symlink(url_parsed.path, outputName)
         except Exception, what:
@@ -538,7 +554,9 @@ class ComplexInput(Input):
         except IOError,e:
             self.onProblem("NoApplicableCode",e)
 
-        outputName = tempfile.mktemp(prefix="pywpsInput",dir=curdir)
+        # try to keep original name
+        outputName = self.generateOutputName(url)
+        #outputName = tempfile.mktemp(prefix="pywpsInput",dir=curdir)
 
         fout = None
         try:
