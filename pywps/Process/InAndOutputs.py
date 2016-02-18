@@ -214,14 +214,17 @@ class LiteralInput(Input):
 
     def __init__(self,identifier,title,abstract=None,
                 metadata=[],minOccurs=1,maxOccurs=1,dataType=types.StringType,
-                uoms=(),values=("*"),spacing=None,default=None):
+                uoms=(),values=("*"),spacing=None,default=None, restrictedCharacters=None):
         """Class constructor"""
         Input.__init__(self,identifier,title,abstract=abstract,
                 metadata=metadata,minOccurs=minOccurs,maxOccurs=maxOccurs,type="LiteralValue")
 
         self.dataType = dataType
         self.uoms = uoms
-        self.restrictedCharacters = ['\\',"#",";", "&","!"]
+        if restrictedCharacters is not None:
+            self.restrictedCharacters = restrictedCharacters
+        else:
+            self.restrictedCharacters = ['\\',"#",";", "&","!"]
         if type(values) == types.StringType:
             self.values = (values)
         elif type(values) == types.ListType:
