@@ -327,7 +327,7 @@ class WPSProcess:
     def addLiteralInput(self, identifier, title, abstract=None,
             uoms=(), minOccurs=1, maxOccurs=1,
             allowedValues=("*"), type=types.IntType ,
-            default=None, metadata=[]):
+            default=None, metadata=[], restrictedCharacters=None):
         """
         Add new input item of type LiteralValue to this process
 
@@ -375,7 +375,7 @@ class WPSProcess:
                 title=title, abstract=abstract, metadata=metadata,
                 minOccurs=minOccurs,maxOccurs=maxOccurs,
                 dataType=type, uoms=uoms, values=allowedValues,
-                default=default)
+                default=default, restrictedCharacters=restrictedCharacters)
         return self.inputs[identifier]
 
     def addComplexInput(self,identifier,title,abstract=None,
