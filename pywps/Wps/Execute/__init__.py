@@ -545,8 +545,10 @@ class Execute(Request):
         if self.wps.inputs["datainputs"]:
             for inp in self.wps.inputs["datainputs"]:
                 if not inp["identifier"] in self.process.inputs:
-                    raise pywps.pywps.InvalidParameterValue("datainputs",
-                        "Input [%s] is not defined" % inp["identifier"])
+                    # TODO: fix this code ... wps.inputs and process.inputs are not in sync
+                    LOGGER.error("Input [%s] is not defined" % inp["identifier"])
+                    #raise pywps.pywps.InvalidParameterValue("datainputs",
+                    #    "Input [%s] is not defined" % inp["identifier"])
 
         # make sure, all inputs have minimum required number of values
         for identifier in self.process.inputs:
