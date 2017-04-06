@@ -49,9 +49,8 @@ class Service(object):
 
         if config.get_config_value('logging', 'file') and config.get_config_value('logging', 'level'):
             LOGGER.setLevel(getattr(logging, config.get_config_value('logging', 'level')))
-            msg_fmt = '%(asctime)s] [%(levelname)s] file=%(pathname)s line=%(lineno)s module=%(module)s function=%(funcName)s %(message)s'  # noqa
             fh = logging.FileHandler(config.get_config_value('logging', 'file'))
-            fh.setFormatter(logging.Formatter(msg_fmt))
+            fh.setFormatter(logging.Formatter(config.get_config_value('logging', 'format')))
             LOGGER.addHandler(fh)
         else:  # NullHandler
             LOGGER.addHandler(logging.NullHandler())
@@ -623,7 +622,9 @@ class Service(object):
             except NoApplicableCode as e:
                 return e
             return e
-
+        except Exception as e:
+            e = NoApplicableCode(str(e), code=500)
+            return e
 
 def _openurl(inpt):
     """use urllib to open given href
