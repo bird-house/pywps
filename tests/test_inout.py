@@ -12,7 +12,7 @@ import unittest
 from pywps import Format
 from pywps.validator import get_validator
 from pywps import NAMESPACES
-from pywps.inout.basic import IOHandler, SOURCE_TYPE, SimpleHandler, BBoxInput, BBoxOutput, \
+from pywps.inout.basic import IOHandler, SOURCE_TYPE, LiteralHandler, BBoxInput, BBoxOutput, \
     ComplexInput, ComplexOutput, LiteralOutput, LiteralInput, _is_textfile
 from pywps.inout import BoundingBoxInput as BoundingBoxInputXML
 from pywps.inout.literaltypes import convert, AllowedValue
@@ -35,8 +35,8 @@ class IOHandlerTest(unittest.TestCase):
     """IOHandler test cases"""
 
     def setUp(self):
-        tmp_dir = tempfile.mkdtemp()
-        self.iohandler = IOHandler(workdir=tmp_dir)
+        self.tmp_dir = tempfile.mkdtemp()
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
         self._value = 'lalala'
 
     def tearDown(self):
@@ -66,7 +66,8 @@ class IOHandlerTest(unittest.TestCase):
         file_path = self.iohandler.file
         self.assertTrue(file_path.endswith(suffix))
         file_handler = open(file_path)
-        self.assertEqual(self._value, file_handler.read(), 'File obtained')
+        content = file_handler.read()
+        self.assertEqual(self._value, content, 'File obtained')
         file_handler.close()
 
         if self.iohandler.source_type == SOURCE_TYPE.STREAM:
@@ -93,18 +94,22 @@ class IOHandlerTest(unittest.TestCase):
 
     def test_data(self):
         """Test data input IOHandler"""
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
         self.iohandler.data = self._value
         self.iohandler.data_format = Format('foo', extension='.foo')
         self._test_outout(SOURCE_TYPE.DATA, '.foo')
 
     def test_stream(self):
         """Test stream input IOHandler"""
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
         source = StringIO(text_type(self._value))
         self.iohandler.stream = source
+        self.assertEqual(self.iohandler.data, self._value)
         self._test_outout(SOURCE_TYPE.STREAM)
 
     def test_file(self):
         """Test file input IOHandler"""
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
         (fd, tmp_file) = tempfile.mkstemp()
         source = tmp_file
         file_handler = open(tmp_file, 'w')
@@ -112,6 +117,17 @@ class IOHandlerTest(unittest.TestCase):
         file_handler.close()
         self.iohandler.file = source
         self._test_outout(SOURCE_TYPE.FILE)
+
+    def test_url(self):
+        import requests
+        wfsResource = 'http://demo.mapserver.org/cgi-bin/wfs?service=WFS&version=1.1.0&request=GetFeature&typename=continents&maxfeatures=2'
+        self._value = requests.get(wfsResource).content
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
+        self.iohandler.url = wfsResource
+        self._test_outout(SOURCE_TYPE.URL)
+
+
+
 
     def test_workdir(self):
         """Test workdir"""
@@ -129,6 +145,7 @@ class IOHandlerTest(unittest.TestCase):
         self.skipTest('Memory object not implemented')
 
     def test_data_bytes(self):
+        self.iohandler = IOHandler(workdir=self.tmp_dir)
         self._value = b'aa'
 
         self.iohandler.data = self._value
@@ -240,13 +257,13 @@ class SimpleHandlerTest(unittest.TestCase):
 
         data_type = 'integer'
 
-        self.simple_handler = SimpleHandler(data_type=data_type)
+        self.literal_handler = LiteralHandler(data_type=data_type)
 
     def test_contruct(self):
-        self.assertIsInstance(self.simple_handler, SimpleHandler)
+        self.assertIsInstance(self.literal_handler, LiteralHandler)
 
     def test_data_type(self):
-        self.assertEqual(convert(self.simple_handler.data_type, '1'), 1)
+        self.assertEqual(convert(self.literal_handler.data_type, '1'), 1)
 
 class LiteralInputTest(unittest.TestCase):
     """LiteralInput test cases"""
