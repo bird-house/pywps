@@ -23,6 +23,7 @@ from pywps.response.status import WPS_STATUS
 
 from collections import deque, OrderedDict
 import os
+import stat
 import sys
 import uuid
 import copy
@@ -310,6 +311,28 @@ class Service(object):
             raise MissingParameterValue(locator=source.identifier)
 
         return outinputs
+
+    def _get_tempdir(self, wps_request):
+        tempdir = None
+        if config.get_config_value('server', 'setworkdir') is True:
+            # TODO: make sure the request is comming from a server we know.
+            if 'X-Requested-Workdir' in wps_request.http_request.headers:
+                requested_dir = wps_request.http_request.headers['X-Requested-Workdir']
+                if os.path.isdir(requested_dir):
+                    try:
+                        # make sure rights are set correctly
+                        os.chmod(requested_dir, stat.S_IRWXU)
+                    except OSError:
+                        LOGGER.warn("No access to requested workdir: %s", requested_dir)
+                    else:
+                        tempdir = requested_dir
+                        LOGGER.info("Using tempdir as requested: %s", tempdir)
+        if not tempdir:
+            workdir = os.path.abspath(config.get_config_value('server', 'workdir'))
+            prefix = config.get_config_value('server', 'prefix')
+            tempdir = tempfile.mkdtemp(prefix=prefix, dir=workdir)
+            LOGGER.debug("Created tempdir: %s", tempdir)
+        return tempdir
 
     def _set_grass(self):
         """Set environment variables needed for GRASS GIS support

@@ -30,7 +30,7 @@ class Process(object):
     :param handler: A callable that gets invoked for each incoming
                     request. It should accept a single
                     :class:`pywps.app.WPSRequest` argument and return a
-                    :class:`pywps.app.WPSResponse` object.
+                    :class:`pywps.response.WPSResponse` object.
     :param string identifier: Name of this process.
     :param string title: Human readable title of process.
     :param string abstract: Brief narrative description of the process.

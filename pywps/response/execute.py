@@ -189,6 +189,12 @@ class ExecuteResponse(WPSResponse):
         doc = template.render(**self.json)
         return doc
 
+    def call_on_close(self, function):
+        """Custom implementation of call_on_close of werkzeug
+        TODO: rewrite this using werkzeug's tools
+        """
+        self._close_functions.push(function)
+
     @Request.application
     def __call__(self, request):
         if self.wps_request.raw:
