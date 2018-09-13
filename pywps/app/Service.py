@@ -78,6 +78,7 @@ class Service(object):
         """
         self._set_grass()
         process = self.prepare_process_for_execution(identifier)
+        self.prepare_client_certificate(process, wps_request)
         return self._parse_and_execute(process, wps_request, uuid)
 
     def prepare_process_for_execution(self, identifier):
@@ -87,7 +88,7 @@ class Service(object):
             process = self.processes[identifier]
         except KeyError:
             raise InvalidParameterValue("Unknown process '%r'" % identifier, 'Identifier')
-        # make deep copy of the process instace
+        # make deep copy of the process instance
         # so that processes are not overriding each other
         # just for execute
         process = copy.deepcopy(process)
@@ -96,6 +97,32 @@ class Service(object):
         tempdir = tempfile.mkdtemp(prefix='pywps_process_', dir=workdir)
         process.set_workdir(tempdir)
         return process
+
+    def prepare_client_certificate(self, process, wps_request):
+        if wps_request.http_request.environ.get('HTTP_X_SSL_CLIENT_VERIFY', '') == 'SUCCESS':
+            if 'HTTP_X_SSL_CLIENT_CERT' in wps_request.http_request.environ:
+                LOGGER.debug('adding client certificate to workdir for {}'.format(
+                    wps_request.http_request.environ.get('HTTP_X_SSL_CLIENT_S_DN', 'Unknown')))
+                try:
+                    with open(os.path.join(process.workdir, 'cert.pem'), 'w') as fp:
+                        fp.write(wps_request.http_request.environ['HTTP_X_SSL_CLIENT_CERT'])
+                    opendap_config = """\
+                    # BEGIN <<< Managed by PyWPS >>>
+                    HTTP.VERBOSE=0
+                    HTTP.COOKIEJAR={0}/.dods_cookies
+                    HTTP.SSL.VALIDATE=0
+                    HTTP.SSL.CERTIFICATE={0}/cert.pem
+                    HTTP.SSL.KEY={0}/cert.pem
+                    HTTP.SSL.CAPATH={0}/certificates
+                    # END <<< Managed by PyWPS >>>
+                    """.format(process.workdir)
+                    dodsrc = os.path.join(process.workdir, '.dodsrc')
+                    with open(dodsrc, 'w') as fp:
+                        fp.write(opendap_config)
+                    import shutil
+                    shutil.copy2(dodsrc, os.path.join(process.workdir, '.httprc'))
+                except Exception:
+                    LOGGER.warn('Could not prepare client certiticate.')
 
     def _parse_and_execute(self, process, wps_request, uuid):
         """Parse and execute request
@@ -296,6 +323,9 @@ class Service(object):
             # because they never have status.
 
             request_uuid = uuid.uuid1()
+
+            LOGGER.warn("environ: {}".format(http_request.environ))
+            LOGGER.warn("headers: {}".format(http_request.headers))
 
             environ_cfg = http_request.environ.get('PYWPS_CFG')
             if 'PYWPS_CFG' not in os.environ and environ_cfg:
