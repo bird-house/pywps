@@ -38,6 +38,7 @@ WPS, OWS = get_ElementMakerForVersion(VERSION)
 
 xpath_ns = get_xpath_ns(VERSION)
 
+
 def create_ultimate_question():
     def handler(request, response):
         response.outputs['outvalue'].data = '42'
@@ -84,7 +85,7 @@ def create_complex_proces():
         response.outputs['complex'].data = request.inputs['complex'][0].data
         return response
 
-    frmt = Format(mime_type='application/gml', extension=".gml") # this is unknown mimetype
+    frmt = Format(mime_type='application/gml', extension=".gml")  # this is unknown mimetype
 
     return Process(handler=complex_proces,
             identifier='my_complex_process',
@@ -197,19 +198,24 @@ class ExecuteTest(unittest.TestCase):
         assert_response_success(resp)
         """
 
+        class FakeHttpRequest():
+            environ = {}
+
         class FakeRequest():
+            # TODO: use werkzeug test request?
             identifier = 'my_opendap_process'
             service = 'wps'
             operation = 'execute'
             version = '1.0.0'
             raw = True,
             inputs = {'dods': [{
-                    'identifier': 'dods',
-                    'href': href,
-                }]}
+                      'identifier': 'dods',
+                      'href': href,
+                      }]}
             store_execute = False
             lineage = False
             outputs = ['conventions']
+            http_request = FakeHttpRequest()
 
         request = FakeRequest()
 
