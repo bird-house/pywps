@@ -18,6 +18,7 @@ if PY2:
     from flufl.enum import Enum
     from urlparse import urlparse
     from urlparse import urljoin
+    from urlparse import unquote
     from urllib2 import urlopen
 
 else:
@@ -27,4 +28,5 @@ else:
     from enum import Enum
     from urllib.parse import urlparse
     from urllib.parse import urljoin
+    from urllib.parse import unquote
     from urllib.request import urlopen

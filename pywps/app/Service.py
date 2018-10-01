@@ -9,6 +9,7 @@ from werkzeug.exceptions import HTTPException
 from werkzeug.wrappers import Request, Response
 from pywps._compat import PY2
 from pywps._compat import urlparse
+from pywps._compat import unquote
 from pywps.app.WPSRequest import WPSRequest
 import pywps.configuration as config
 from pywps.exceptions import MissingParameterValue, NoApplicableCode, InvalidParameterValue, FileSizeExceeded, \
@@ -78,6 +79,7 @@ class Service(object):
         """
         self._set_grass()
         process = self.prepare_process_for_execution(identifier)
+        self.prepare_client_certificate(process, wps_request)
         return self._parse_and_execute(process, wps_request, uuid)
 
     def prepare_process_for_execution(self, identifier):
@@ -87,7 +89,7 @@ class Service(object):
             process = self.processes[identifier]
         except KeyError:
             raise InvalidParameterValue("Unknown process '%r'" % identifier, 'Identifier')
-        # make deep copy of the process instace
+        # make deep copy of the process instance
         # so that processes are not overriding each other
         # just for execute
         process = copy.deepcopy(process)
@@ -96,6 +98,32 @@ class Service(object):
         tempdir = tempfile.mkdtemp(prefix='pywps_process_', dir=workdir)
         process.set_workdir(tempdir)
         return process
+
+    def prepare_client_certificate(self, process, wps_request):
+        if wps_request.http_request.environ.get('HTTP_X_SSL_CLIENT_VERIFY') == 'SUCCESS':
+            if 'HTTP_X_SSL_CLIENT_CERT' in wps_request.http_request.environ:
+                LOGGER.info('adding client certificate to workdir.')
+                try:
+                    certfile = os.path.join(process.workdir, 'cert.pem')
+                    with open(certfile, 'w') as fp:
+                        os.chmod(certfile, 0o600)
+                        fp.write(unquote(wps_request.http_request.environ['HTTP_X_SSL_CLIENT_CERT']))
+                    opendap_config = """\
+# BEGIN <<< Managed by PyWPS >>>
+HTTP.VERBOSE=0
+HTTP.COOKIEJAR={0}/.dods_cookies
+HTTP.SSL.VALIDATE=0
+HTTP.SSL.CERTIFICATE={0}/cert.pem
+HTTP.SSL.KEY={0}/cert.pem
+HTTP.SSL.CAPATH={0}/certificates
+# END <<< Managed by PyWPS >>>
+                    """.format(process.workdir)
+                    dodsrc = os.path.join(process.workdir, '.dodsrc')
+                    with open(dodsrc, 'w') as fp:
+                        fp.write(opendap_config)
+                    shutil.copy2(dodsrc, os.path.join(process.workdir, '.httprc'))
+                except Exception:
+                    LOGGER.warn('Could not prepare client certificate.')
 
     def _parse_and_execute(self, process, wps_request, uuid):
         """Parse and execute request
