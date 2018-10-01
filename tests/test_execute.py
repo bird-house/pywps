@@ -167,6 +167,10 @@ def get_output(doc):
     return output
 
 
+class FakeHttpRequest():
+    environ = {}
+
+
 class ExecuteTest(unittest.TestCase):
     """Test for Exeucte request KVP request"""
 
@@ -198,9 +202,6 @@ class ExecuteTest(unittest.TestCase):
         assert_response_success(resp)
         """
 
-        class FakeHttpRequest():
-            environ = {}
-
         class FakeRequest():
             # TODO: use werkzeug test request?
             identifier = 'my_opendap_process'
@@ -223,7 +224,6 @@ class ExecuteTest(unittest.TestCase):
         self.assertEqual(resp.outputs['conventions'].data, u'CF-1.0')
         self.assertEqual(resp.outputs['outdods'].url, href)
 
-
     def test_input_parser(self):
         """Test input parsing
         """
@@ -234,15 +234,16 @@ class ExecuteTest(unittest.TestCase):
 
         class FakeRequest():
             identifier = 'complex_process'
-            service='wps'
-            operation='execute'
-            version='1.0.0'
+            service = 'wps'
+            operation = 'execute'
+            version = '1.0.0'
             inputs = {'complex': [{
-                    'identifier': 'complex',
-                    'mimeType': 'text/gml',
-                    'data': 'the data'
-                }]}
-        request = FakeRequest();
+                      'identifier': 'complex',
+                      'mimeType': 'text/gml',
+                      'data': 'the data'
+                      }]}
+            http_request = FakeHttpRequest()
+        request = FakeRequest()
 
         try:
             service.execute('my_complex_process', request, 'fakeuuid')
@@ -275,7 +276,7 @@ class ExecuteTest(unittest.TestCase):
         my_process.inputs[0].supported_formats = [frmt]
         my_process.inputs[0].data_format = Format(mime_type='application/xml+gml')
         parsed_inputs = service.create_complex_inputs(my_process.inputs[0],
-                                              request.inputs['complex'])
+                                                      request.inputs['complex'])
 
         self.assertEqual(parsed_inputs[0].data_format.validate, validategml)
 
@@ -290,13 +291,14 @@ class ExecuteTest(unittest.TestCase):
         class FakeRequest():
             identifier = 'complex_process'
             service = 'wps'
-            operation='execute'
+            operation = 'execute'
             version = '1.0.0'
             inputs = {}
             raw = False
             outputs = {}
             store_execute = False
             lineage = False
+            http_request = FakeHttpRequest()
 
         request = FakeRequest()
         response = service.execute('my_complex_process', request, 'fakeuuid')
@@ -313,19 +315,20 @@ class ExecuteTest(unittest.TestCase):
         class FakeRequest():
             def __init__(self, mimetype):
                 self.outputs = {'mimetype': {
-                        'identifier': 'mimetype',
-                        'mimetype': mimetype,
-                        'data': 'the data'
-                }}
+                                'identifier': 'mimetype',
+                                'mimetype': mimetype,
+                                'data': 'the data'
+                                }}
 
             identifier = 'get_mimetype_process'
             service = 'wps'
-            operation='execute'
+            operation = 'execute'
             version = '1.0.0'
             inputs = {}
             raw = False
             store_execute = False
             lineage = False
+            http_request = FakeHttpRequest()
 
         # valid mimetype
         request = FakeRequest('text/plain+test')
