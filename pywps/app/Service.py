@@ -100,15 +100,14 @@ class Service(object):
         return process
 
     def prepare_client_certificate(self, process, wps_request):
-        if wps_request.http_request.environ.get('HTTP_X_SSL_CLIENT_VERIFY') == 'SUCCESS':
-            if 'HTTP_X_SSL_CLIENT_CERT' in wps_request.http_request.environ:
-                LOGGER.info('adding client certificate to workdir.')
-                try:
-                    certfile = os.path.join(process.workdir, 'cert.pem')
-                    with open(certfile, 'w') as fp:
-                        os.chmod(certfile, 0o600)
-                        fp.write(unquote(wps_request.http_request.environ['HTTP_X_SSL_CLIENT_CERT']))
-                    opendap_config = """\
+        if 'HTTP_X_SSL_CLIENT_CERT' in wps_request.http_request.environ:
+            LOGGER.info('adding client certificate to workdir.')
+            try:
+                certfile = os.path.join(process.workdir, 'cert.pem')
+                with open(certfile, 'w') as fp:
+                    os.chmod(certfile, 0o600)
+                    fp.write(unquote(wps_request.http_request.environ['HTTP_X_SSL_CLIENT_CERT']))
+                opendap_config = """\
 # BEGIN <<< Managed by PyWPS >>>
 HTTP.VERBOSE=0
 HTTP.COOKIEJAR={0}/.dods_cookies
@@ -118,12 +117,12 @@ HTTP.SSL.KEY={0}/cert.pem
 HTTP.SSL.CAPATH={0}/certificates
 # END <<< Managed by PyWPS >>>
                     """.format(process.workdir)
-                    dodsrc = os.path.join(process.workdir, '.dodsrc')
-                    with open(dodsrc, 'w') as fp:
-                        fp.write(opendap_config)
-                    shutil.copy2(dodsrc, os.path.join(process.workdir, '.httprc'))
-                except Exception:
-                    LOGGER.warn('Could not prepare client certificate.')
+                dodsrc = os.path.join(process.workdir, '.dodsrc')
+                with open(dodsrc, 'w') as fp:
+                    fp.write(opendap_config)
+                shutil.copy2(dodsrc, os.path.join(process.workdir, '.httprc'))
+            except Exception:
+                LOGGER.warn('Could not prepare client certificate.')
 
     def _parse_and_execute(self, process, wps_request, uuid):
         """Parse and execute request
