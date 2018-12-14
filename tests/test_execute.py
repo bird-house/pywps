@@ -174,10 +174,6 @@ def get_output(doc):
     return output
 
 
-class FakeHttpRequest():
-    environ = {}
-
-
 class ExecuteTest(unittest.TestCase):
     """Test for Exeucte request KVP request"""
 
@@ -211,7 +207,6 @@ class ExecuteTest(unittest.TestCase):
         """
 
         class FakeRequest():
-            # TODO: use werkzeug test request?
             identifier = 'my_opendap_process'
             service = 'wps'
             operation = 'execute'
@@ -224,7 +219,6 @@ class ExecuteTest(unittest.TestCase):
             store_execute = False
             lineage = False
             outputs = ['conventions']
-            http_request = FakeHttpRequest()
 
         request = FakeRequest()
 
@@ -310,7 +304,6 @@ class ExecuteTest(unittest.TestCase):
             outputs = {}
             store_execute = False
             lineage = False
-            http_request = FakeHttpRequest()
 
         request = FakeRequest()
         response = service.execute('my_complex_process', request, 'fakeuuid')
@@ -340,7 +333,6 @@ class ExecuteTest(unittest.TestCase):
             raw = False
             store_execute = False
             lineage = False
-            http_request = FakeHttpRequest()
 
         # valid mimetype
         request = FakeRequest('text/plain+test')
