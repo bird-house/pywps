@@ -45,8 +45,9 @@ class ComplexOutput(basic.ComplexOutput):
     """
     :param identifier: The name of this output.
     :param title: Readable form of the output name.
-    :param pywps.inout.formats.Format  supported_formats: List of supported
+    :param supported_formats: List of supported
         formats. The first format in the list will be used as the default.
+    :type supported_formats: (pywps.inout.formats.Format, )
     :param str abstract: Description of the output
     :param pywps.validator.mode.MODE mode: validation mode (none to strict)
     :param metadata: List of metadata advertised by this process. They
@@ -70,6 +71,7 @@ class ComplexOutput(basic.ComplexOutput):
 
     @property
     def json(self):
+
         data = {
             "identifier": self.identifier,
             "title": self.title,
@@ -78,7 +80,7 @@ class ComplexOutput(basic.ComplexOutput):
             'type': 'complex',
             'supported_formats': [frmt.json for frmt in self.supported_formats],
             'asreference': self.as_reference,
-            'data_format': self.data_format.json,
+            'data_format': self.data_format.json if self.data_format else None,
             'file': self.file if self.prop == 'file' else None,
             'workdir': self.workdir,
             'mode': self.valid_mode,
@@ -127,14 +129,23 @@ class ComplexOutput(basic.ComplexOutput):
         except Exception:
 
             if self.data:
-                if isinstance(self.data, six.string_types):
+                # XML compatible formats don't have to be wrapped in a CDATA tag.
+                if self.data_format.mime_type in ["application/xml", "application/gml+xml", "text/xml"]:
+                    fmt = "{}"
+                else:
+                    fmt = "<![CDATA[{}]]>"
+
+                if self.data_format.encoding == 'base64':
+                    data["data"] = fmt.format(etree.CDATA(self.base64))
+
+                elif isinstance(self.data, six.string_types):
                     if isinstance(self.data, bytes):
-                        data["data"] = self.data.decode("utf-8")
+                        data["data"] = fmt.format(self.data.decode("utf-8"))
                     else:
-                        data["data"] = self.data
+                        data["data"] = fmt.format(self.data)
 
                 else:
-                    data["data"] = etree.tostring(etree.CDATA(self.base64))
+                    raise NotImplementedError
 
         return data
 
